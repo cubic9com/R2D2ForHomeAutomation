@@ -8,7 +8,7 @@ For details, see [this page](https://cubic9.com/Devel/%C5%C5%BB%D2%B9%A9%BA%EE/G
 
 Video is available on YouTube.
 
-[![Videos on YouTube.](http://img.youtube.com/vi/1hsOiGCjKD0/0.jpg)](http://www.youtube.com/watch?v=1hsOiGCjKD0)
+[![Videos on YouTube.](http://img.youtube.com/vi/09vayCFMri4/0.jpg)](http://www.youtube.com/watch?v=09vayCFMri4)
 
 
 # Dependent libraries
