@@ -17,18 +17,13 @@ import json
 import subprocess
 import random
 import base64
-
 import time
 from neopixel import *
-
 import RPi.GPIO as GPIO
 import signal
 import sys
-
 import threading
-
 import urllib2
-
 from R2D2ForHomeAutomationConst import *
 
 # LED strip configuration:
@@ -40,14 +35,19 @@ LED_DMA        = 5       # DMA channel to use for generating signal (try 5)
 LED_BRIGHTNESS = 255     # Set to 0 for darkest and 255 for brightest
 LED_INVERT     = False   # True to invert the signal (when using NPN transistor level shift)
 
-ser = serial.Serial('/dev/ttyACM0', 9600, timeout = 1)
-ser.readline()
+# server configuraion:
+PORT = 8000
+AUTH_KEY = 'foohoge:barpiyo'
+
+# BRAVIA configuration:
+BRAVIA_MAC_ADDRESS = '00:00:5E:00:53:00'
+BRAVIA_IP_ADDRESS = '192.0.2.100'
 
 key = ''
 servo = ''
 
-MAC_ADDRESS = '00:00:5E:00:53:00'
-IP_ADDRESS = '192.0.2.100'
+ser = serial.Serial('/dev/ttyACM0', 9600, timeout = 1)
+ser.readline()
 
 class R2D2ForHomeAutomationRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 	''' Main class to present webpages and authentication. '''
@@ -83,8 +83,11 @@ class R2D2ForHomeAutomationRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHand
 			th_rotate.start()
 			blink_led(strip)
 			print(self.path)
-			if self.path == '/ircc/PowerOn':
-				subprocess.Popen(['etherwake', MAC_ADDRESS],
+			if self.path == '/':
+				self.do_HEAD()
+				pass
+			elif self.path == '/ircc/PowerOn':
+				subprocess.Popen(['etherwake', BRAVIA_MAC_ADDRESS],
 					stdin=subprocess.PIPE,
 					stdout=subprocess.PIPE,
 					stderr=subprocess.PIPE,
@@ -121,8 +124,11 @@ def soap_send(f):
 	prefix = '<?xml version="1.0" encoding="utf-8"?><s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"><s:Body><u:X_SendIRCC xmlns:u="urn:schemas-sony-com:service:IRCC:1"><IRCCCode>'
 	suffix = '</IRCCCode></u:X_SendIRCC></s:Body></s:Envelope>'
 	data = prefix + ircccode[f] + suffix
-	request = urllib2.Request('http://' + IP_ADDRESS + '/sony/IRCC', data)
-	response = urllib2.urlopen(request)
+	request = urllib2.Request('http://' + BRAVIA_IP_ADDRESS + '/sony/IRCC', data)
+	try:
+		response = urllib2.urlopen(request)
+	except Exception:
+		print "Exception"
 
 def ir_play(f):
 	json_data = json.load(f)
@@ -211,18 +217,17 @@ def exit_handler(signal, frame):
 
 def test(HandlerClass = R2D2ForHomeAutomationRequestHandler,
 		 ServerClass = BaseHTTPServer.HTTPServer):
-	SimpleHTTPServer.test(HandlerClass, ServerClass)
+	BaseHTTPServer.HTTPServer(('', PORT), R2D2ForHomeAutomationRequestHandler).serve_forever()
 
 if __name__ == '__main__':
 	signal.signal(signal.SIGINT, exit_handler)
 
 	# servo motor
-	#GPIO.setmode(GPIO.BCM)
 	gp_out = 24
 
 	# led
 	strip = Adafruit_NeoPixel(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS)
 	strip.begin()
 
-	key = base64.b64encode('foohoge:barpiyo')
+	key = base64.b64encode(AUTH_KEY)
 	test()
